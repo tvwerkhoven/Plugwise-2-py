@@ -71,10 +71,13 @@ def init_logger(logfname, appname='plugwise2py'):
     pw_logger = logging.getLogger(appname)
     log_level()
     # Add the log message handler to the logger
-    handler = logging.handlers.RotatingFileHandler(logfname, maxBytes=1000000, backupCount=5)
+    #handler = logging.handlers.RotatingFileHandler(logfname, maxBytes=1000000, backupCount=5)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    pw_logger.addHandler(handler)
+    #handler.setFormatter(formatter)
+    #pw_logger.addHandler(handler)
+    out_hdlr = logging.StreamHandler(sys.stdout)
+    out_hdlr.setFormatter(formatter)
+    pw_logger.addHandler(out_hdlr)
     pw_logger.info("logging started")
    
 def log_level(level=logging.DEBUG):
@@ -103,10 +106,13 @@ def open_logcomm(filename):
     global pw_comm_logger
     pw_comm_logger = logging.getLogger("pwcomm")
     # Add the log message handler to the logger
-    handler = logging.handlers.RotatingFileHandler(filename, maxBytes=1000000, backupCount=5)
+    #handler = logging.handlers.RotatingFileHandler(filename, maxBytes=1000000, backupCount=5)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
-    handler.setFormatter(formatter)
-    pw_comm_logger.addHandler(handler)
+    #handler.setFormatter(formatter)
+    #pw_comm_logger.addHandler(handler)
+    out_hdlr = logging.StreamHandler(sys.stdout)
+    pw_comm_logger.addHandler(out_hdlr)
+    out_hdlr.setFormatter(formatter)
     pw_comm_logger.setLevel(logging.INFO) 
     pw_comm_logger.info("logging started")
     #global logcommfile

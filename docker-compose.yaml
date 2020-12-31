@@ -1,0 +1,36 @@
+version: '3.7'
+
+services:
+  plugwise2mqtt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: plugwise2py
+    image: plugwise2mqtt:latest
+    deploy:
+      placement:
+        constraints:
+          - "node.labels.type==ctrl"
+          - "node.labels.location==dronten"
+    restart: always
+    tty: true
+    privileged: true
+    environment:
+      - TZ=Europe/Amsterdam
+      - DSMR_SERIAL=/dev/ttyUSB3
+      - DSMR_MQTT_URL=mqqt-smurf.server.dronten.red-home.nl
+      - DSMR_MQTT_PORT=1883
+    networks:
+      - plugwise
+    devices:
+      - /dev/ttyUSB_PUGWISE:/dev/ttyUSB_PUGWISE
+      - /dev/ttyUSB3:/dev/ttyUSB3
+    volumes:
+      - /run/udev:/run/udev:ro
+      - /srv/docker/data/plugwise2mqtt/config/pw-hostconfig.json:/opt/plugwise/config/pw-hostconfig.json
+      - /srv/docker/data/plugwise2mqtt/config/pw-control.json:/opt/plugwise/config/pw-control.json
+      - /srv/docker/data/plugwise2mqtt/config/pw-conf.json:/opt/plugwise/config/pw-conf.json
+      - /srv/docker/data/plugwise2mqtt/data:/opt/plugwise/data    
+      - /srv/docker/data/plugwise2mqtt/log:/opt/plugwise/log
+networks:
+  plugwise:

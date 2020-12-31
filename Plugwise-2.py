@@ -1187,7 +1187,7 @@ class PWControl(object):
         #NOTE: Untested function, for example purposes
         print "Untested function, for example purposes"
         print "Aborting. Remove next line to continue"
-        krak
+#        krak
         #TODO: Exception handling        
         #
         #connect stick and circle+ (=network controller)
@@ -1277,6 +1277,58 @@ class PWControl(object):
         self.device.unjoined.clear()
         #a later call to self.test_offline will initialize the new circle(s)
         #self.test_offline()
+
+    def register_on_homeassisten(self):
+        print(self.circles)
+        for circle in self.circles:
+            hass_sensor = {}
+            hass_sensor["name"] = circle.attr['name'] + "_power"
+            hass_sensor["state_topic"] = "plugwise2py/state/power/" + circle.mac
+            hass_sensor["unit_of_measurement"] = "W"
+            hass_sensor["value_template"] = "{{ value_json.power }}"
+            hass_sensor["unique_id"] = "" + circle.mac + "_power"
+            hass_sensor["device"] = {}
+            hass_sensor["device"]["identifiers"] = [ "plugwise_" + circle.mac ]
+            hass_sensor["device"]["manufacturer"] = "Plugwise"
+            hass_sensor["device"]["name"] = circle.attr['name']
+            hass_sensor["device"]["model"] =  "Circle" # + circle.type()
+            debug("PWControl.register_on_homeassistend(): " + json.dumps( hass_sensor) )
+
+            hass_switch = {}
+            hass_switch["name"] = circle.attr['name'] + "_switch"
+            hass_switch["state_topic"] = "plugwise2py/state/circle/" + circle.mac
+            hass_switch["command_topic"] = "plugwise2py/cmd/switch/" + circle.mac
+            hass_switch["value_template"] = '{"mac": "' +  circle.mac + '", "cmd": "switch", "val": "{{ value_json.switch }}"}'
+            hass_switch["payload_on"] = '{"mac": "' + circle.mac + '", "cmd": "switch", "val": "on"}'
+            hass_switch["payload_off"] = '{"mac": "' + circle.mac + '", "cmd": "switch", "val": "off"}'
+            hass_switch["retain"] = "true"
+            hass_switch["optimistic"] = "false"
+            hass_switch["unique_id"] = "" + circle.mac + "_switch"
+            hass_switch["device"] = {}
+            hass_switch["device"]["identifiers"] = [ "plugwise_" + circle.mac ]
+            hass_switch["device"]["manufacturer"] = "Plugwise"
+            hass_switch["device"]["name"] = circle.attr['name']
+            hass_switch["device"]["model"] =  "Circle" # + circle.type()
+            debug("PWControl.register_on_homeassistend(): " + str( json.dumps( hass_switch) ))
+
+            hass_binary_sensor = {}
+            hass_binary_sensor["name"] = circle.attr['name'] + "_connectivity"
+            hass_binary_sensor["state_topic"] = "plugwise2py/state/circle/" + circle.mac
+            hass_binary_sensor["value_template"] = "{{ value_json.switch }}"
+            hass_binary_sensor["payload_on"] = "on"
+            hass_binary_sensor["payload_off"] = "off"
+            hass_binary_sensor["unique_id"] = "" + circle.mac + "_connectivity"
+            hass_binary_sensor["device"] = {}
+            hass_binary_sensor["device"]["identifiers"] = [ "plugwise_" + circle.mac  ]
+            hass_binary_sensor["device"]["manufacturer"] = "Plugwise"
+            hass_binary_sensor["device"]["name"] = circle.attr['name']
+            hass_binary_sensor["device"]["model"] = "Circle" # +  circle.type()
+            debug("PWControl.register_on_homeassistend(): " + str( json.dumps( hass_binary_sensor) ) )
+
+            qpub.put((str("homeassistant/sensor/" + circle.mac + "/power/config"), str( json.dumps(hass_sensor) ), True))
+            qpub.put((str("homeassistant/switch/" + circle.mac + "/switch/config"), str( json.dumps(hass_switch) ), True))
+            qpub.put((str("homeassistant/binary_sensor/" + circle.mac + "/switch/config"), str( json.dumps(hass_binary_sensor) ), True))
+
         
     def run(self):
         global mqtt
@@ -1335,6 +1387,12 @@ class PWControl(object):
         except:
             error("PWControl.run(): Communication error in enable_joining")
 
+        try:
+            self.register_on_homeassisten()
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            error("PWControl.run(): Register the citrcles to homeaddistend faild")
+
         # logrecs = True
         logrecsn = len(self.circles)
         while 1:
@@ -1342,6 +1400,8 @@ class PWControl(object):
             #when schedules are changed, this call can take over ten seconds!
             self.test_offline()
             self.poll_configuration()
+
+
             ##align with the next ten seconds.
             #time.sleep(10-datetime.now().second%10)
             #align to next 10 second boundary, while checking for input commands.
