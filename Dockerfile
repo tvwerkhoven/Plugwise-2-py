@@ -1,9 +1,12 @@
 # The first lines of your Dockerfile should always be:
-FROM python:2-slim
+FROM python:3-slim-bullseye
 
-RUN mkdir /plugwise && mkdir /plugwise/data && mkdir /plugwise/log && touch /plugwise/data/pwlastlog.log
+RUN mkdir /plugwise && \
+    mkdir /plugwise/data && \
+    mkdir /plugwise/log && \
+    touch /plugwise/data/pwlastlog.log
 
-ADD . /opt/plugwise
+ADD . /opt/plugwise/
 RUN cd /opt/plugwise && \
     pip install .
 

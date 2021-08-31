@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: plugwise2py
-    image: plugwise2mqtt:latest
+    image: registry.red-home.nl/red-software/plugwise2mqtt:latest
     deploy:
       placement:
         constraints:
@@ -25,12 +25,18 @@ services:
     devices:
       - /dev/ttyUSB_PUGWISE:/dev/ttyUSB_PUGWISE
       - /dev/ttyUSB3:/dev/ttyUSB3
+    ports:
+      - 8085:8080
     volumes:
       - /run/udev:/run/udev:ro
       - /srv/docker/data/plugwise2mqtt/config/pw-hostconfig.json:/opt/plugwise/config/pw-hostconfig.json
       - /srv/docker/data/plugwise2mqtt/config/pw-control.json:/opt/plugwise/config/pw-control.json
       - /srv/docker/data/plugwise2mqtt/config/pw-conf.json:/opt/plugwise/config/pw-conf.json
-      - /srv/docker/data/plugwise2mqtt/data:/opt/plugwise/data    
+      - /srv/docker/data/plugwise2mqtt/data:/opt/plugwise/data
       - /srv/docker/data/plugwise2mqtt/log:/opt/plugwise/log
 networks:
   plugwise:
+    driver: overlay
+    ipam:
+      config:
+        - subnet: 172.31.6.0/24

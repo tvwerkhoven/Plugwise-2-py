@@ -30,9 +30,10 @@ import logging.handlers
 
 LOG_COMMUNICATION = False
 
-#global var
+# global var
 pw_logger = None
 pw_comm_logger = None
+
 
 def logf(msg):
     if type(msg) == type("  "):
@@ -41,83 +42,96 @@ def logf(msg):
         return repr(msg.decode('utf-8', 'backslashreplace'))[1:-1]
     return repr(msg)[1:-1]
 
+
 def hexstr(s):
     return ' '.join(hex(ord(x)) for x in s)
-    
+
+
 def uint_to_int(val, octals):
     """compute the 2's compliment of int value val for negative values"""
-    bits=octals<<2
-    if( (val&(1<<(bits-1))) != 0 ):
-        val = val - (1<<bits)
+    bits = octals << 2
+    if (val & (1 << (bits - 1))) != 0:
+        val = val - (1 << bits)
     return val
-    
+
+
 def int_to_uint(val, octals):
     """compute the 2's compliment of int value val for negative values"""
-    bits=octals<<2
-    if val<0:
-        val = val + (1<<bits)
+    bits = octals << 2
+    if val < 0:
+        val = val + (1 << bits)
     return val
+
 
 def init_logger(logfname, appname='plugwise2py'):
     global pw_logger
     pw_logger = logging.getLogger(appname)
     log_level()
     # Add the log message handler to the logger
-    #handler = logging.handlers.RotatingFileHandler(logfname, maxBytes=1000000, backupCount=5)
+    # handler = logging.handlers.RotatingFileHandler(logfname, maxBytes=1000000, backupCount=5)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    #handler.setFormatter(formatter)
-    #pw_logger.addHandler(handler)
+    # handler.setFormatter(formatter)
+    # pw_logger.addHandler(handler)
     out_hdlr = logging.StreamHandler(sys.stdout)
     out_hdlr.setFormatter(formatter)
     pw_logger.addHandler(out_hdlr)
     pw_logger.info("logging started")
-   
+
+
 def log_level(level=logging.DEBUG):
     pw_logger.setLevel(level)
+
 
 def log_comm(enable):
     global LOG_COMMUNICATION
     LOG_COMMUNICATION = enable
 
+
 def debug(msg):
-    #if __debug__ and DEBUG_PROTOCOL:
-        #print("%s: %s" % (datetime.datetime.now().isoformat(), msg,))
-        #print(msg)
+    # if __debug__ and DEBUG_PROTOCOL:
+    # print("%s: %s" % (datetime.datetime.now().isoformat(), msg,))
+    # print(msg)
     pw_logger.debug(msg)
 
+
 def error(msg, level=1):
-    #if level <= LOG_LEVEL:
-        #print("%s: %s" % (datetime.datetime.now().isoformat(), msg,))
+    # if level <= LOG_LEVEL:
+    # print("%s: %s" % (datetime.datetime.now().isoformat(), msg,))
     pw_logger.error(msg)
-        
+
+
 def info(msg):
-    #print("%s: %s" % (datetime.datetime.now().isoformat(), msg,))
+    # print("%s: %s" % (datetime.datetime.now().isoformat(), msg,))
     pw_logger.info(msg)
+
 
 def open_logcomm(filename):
     global pw_comm_logger
     pw_comm_logger = logging.getLogger("pwcomm")
     # Add the log message handler to the logger
-    #handler = logging.handlers.RotatingFileHandler(filename, maxBytes=1000000, backupCount=5)
+    # handler = logging.handlers.RotatingFileHandler(filename, maxBytes=1000000, backupCount=5)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
-    #handler.setFormatter(formatter)
-    #pw_comm_logger.addHandler(handler)
+    # handler.setFormatter(formatter)
+    # pw_comm_logger.addHandler(handler)
     out_hdlr = logging.StreamHandler(sys.stdout)
     pw_comm_logger.addHandler(out_hdlr)
     out_hdlr.setFormatter(formatter)
-    pw_comm_logger.setLevel(logging.INFO) 
+    pw_comm_logger.setLevel(logging.INFO)
     pw_comm_logger.info("logging started")
-    #global logcommfile
-    #logcommfile = open(filename, 'w')
-    
+    # global logcommfile
+    # logcommfile = open(filename, 'w')
+
+
 def close_logcomm():
-    #logcommfile.close()
+    # logcommfile.close()
     return
-    
+
+
 def logcomm(msg):
     if LOG_COMMUNICATION:
-        #logcommfile.write("%s %s \n" % (datetime.datetime.now().isoformat(), msg,))
+        # logcommfile.write("%s %s \n" % (datetime.datetime.now().isoformat(), msg,))
         pw_comm_logger.info(msg)
+
 
 class SerialComChannel(object):
     """simple wrapper around serial module"""
@@ -132,28 +146,29 @@ class SerialComChannel(object):
         self.timeout = timeout
         self.open()
         # try:
-            # self._fd = serial.Serial(port, baudrate=baud, bytesize=bits, stopbits=stop, parity=parity, timeout=timeout)
-            # self.connected = True
+        # self._fd = serial.Serial(port, baudrate=baud, bytesize=bits, stopbits=stop, parity=parity, timeout=timeout)
+        # self.connected = True
         # except SerialException as e:
-            # self.connected = False
+        # self.connected = False
 
     def open(self):
         try:
-            self._fd = serial.Serial(port=self.port, baudrate=self.baud, bytesize=self.bits, parity=self.parity, stopbits=self.stop, timeout=self.timeout)
+            self._fd = serial.Serial(port=self.port, baudrate=self.baud, bytesize=self.bits, parity=self.parity,
+                                     stopbits=self.stop, timeout=self.timeout)
             self.connected = True
         except SerialException as e:
             self.connected = False
             self._fd = None
-        
+
     def reopen(self):
-        if self._fd == None:
+        if self._fd is None:
             self.open()
         else:
-            if(self._fd.isOpen() == False):
+            if not self._fd.isOpen():
                 self._fd.open()
-        
+
     def close(self):
-        if self._fd != None:
+        if self._fd is not None:
             self._fd.close()
         self.connected = False
 
