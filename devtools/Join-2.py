@@ -1326,11 +1326,11 @@ try:
     elif 'mqtt_ip' in cfg and 'mqtt_port' in cfg:
         # connect to server and start worker thread.
         if 'mqtt_user' in cfg and 'mqtt_password' in cfg:
-            mqttclient = MqttClient(cfg['mqtt_ip'], cfg['mqtt_port'], qpub, qsub, "Plugwise-2-py", cfg['mqtt_user'],
+            mqttclient = MqttClient(cfg['mqtt_ip'], cfg['mqtt_port'], qpub, qsub, "plugwise2mqtt", cfg['mqtt_user'],
                                     cfg['mqtt_password'])
         else:
-            mqttclient = MqttClient(cfg['mqtt_ip'], cfg['mqtt_port'], qpub, qsub, "Plugwise-2-py")
-        mqttclient.subscribe("plugwise2py/cmd/#")
+            mqttclient = MqttClient(cfg['mqtt_ip'], cfg['mqtt_port'], qpub, qsub, "plugwise2mqtt")
+        mqttclient.subscribe("plugwise2mqtt/cmd/#")
         mqtt_t = threading.Thread(target=mqttclient.run)
         mqtt_t.setDaemon(True)
         mqtt_t.start()

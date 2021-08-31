@@ -63,7 +63,7 @@ def int_to_uint(val, octals):
     return val
 
 
-def init_logger(logfname, appname='plugwise2py'):
+def init_logger(logfname, appname='plugwise2mqtt'):
     global pw_logger
     pw_logger = logging.getLogger(appname)
     log_level()

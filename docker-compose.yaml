@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: plugwise2py
-    image: /plugwise2mqtt:latest
+    image: plugwise2mqtt:latest
     deploy:
       placement:
         constraints:
@@ -18,7 +18,7 @@ services:
     environment:
       - TZ=Europe/Amsterdam
       - DSMR_SERIAL=/dev/ttyUSB3
-      - DSMR_MQTT_URL=
+      - DSMR_MQTT_URL=mqqt-smurf.server.dronten.red-home.nl
       - DSMR_MQTT_PORT=1883
     networks:
       - plugwise
@@ -32,7 +32,7 @@ services:
       - /srv/docker/data/plugwise2mqtt/config/pw-hostconfig.json:/opt/plugwise/config/pw-hostconfig.json
       - /srv/docker/data/plugwise2mqtt/config/pw-control.json:/opt/plugwise/config/pw-control.json
       - /srv/docker/data/plugwise2mqtt/config/pw-conf.json:/opt/plugwise/config/pw-conf.json
-      - /srv/docker/data/plugwise2mqtt/data:/opt/plugwise/data
+      - /srv/docker/data/plugwise2mqtt/data:/opt/plugwise/data    
       - /srv/docker/data/plugwise2mqtt/log:/opt/plugwise/log
 networks:
   plugwise:

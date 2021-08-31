@@ -782,7 +782,7 @@ class PWControl(object):
             self.last_control_ts = os.stat(self.control_fn).st_mtime
 
     def ftopic(self, keyword, mac):
-        return "plugwise2py/state/" + keyword + "/" + mac
+        return "plugwise2mqtt/state/" + keyword + "/" + mac
 
     def publish_circle_state(self, mac):
         qpub.put((self.ftopic("circle", mac), str(self.get_status_json(mac)), True))
@@ -1288,39 +1288,41 @@ class PWControl(object):
                                model="Circle")
 
             hass_sensor = dict(name=circle.name + "_power",
-                               state_topic="plugwise2py/state/power/" + circle.mac,
+                               state_topic="plugwise2mqtt/state/power/" + circle.mac,
                                unit_of_measurement="W",
                                value_template="{{ value_json.power }}",
                                unique_id="" + circle.mac + "_power",
+                               device_class="power",
                                device=hass_device)
 
             info("PWControl.register_on_homeassistend(): " + json.dumps(hass_sensor))
 
             hass_switch = dict(name=circle.name + "_switch",
-                               state_topic="plugwise2py/state/circle/" + circle.mac,
-                               command_topic="plugwise2py/cmd/switch/" + circle.mac,
+                               state_topic="plugwise2matt/state/circle/" + circle.mac,
+                               command_topic="plugwise2mqtt/cmd/switch/" + circle.mac,
                                value_template='{"mac": "' + circle.mac + '", "cmd": "switch", "val": "{{ value_json.switch }}"}',
                                payload_on='{"mac": "' + circle.mac + '", "cmd": "switch", "val": "on"}',
                                payload_off='{"mac": "' + circle.mac + '", "cmd": "switch", "val": "off"}',
                                retain="true",
                                optimistic="false",
+                               device_class="switch",
                                unique_id="" + circle.mac + "_switch",
                                device=hass_device)
             info("PWControl.register_on_homeassistend(): " + str(json.dumps(hass_switch)))
 
             hass_binary_sensor = dict(name=circle.name + "_connectivity",
-                                      state_topic="plugwise2py/state/circle/" + circle.mac,
+                                      state_topic="plugwise2mqtt/state/circle/" + circle.mac,
                                       value_template="{{ value_json.switch }}",
                                       payload_on="on",
                                       payload_off="off",
+                                      device_class="connectivity",
                                       unique_id="" + circle.mac + "_connectivity",
                                       device=hass_device)
             info("PWControl.register_on_homeassistend(): " + str(json.dumps(hass_binary_sensor)))
 
             qpub.put((str("homeassistant/sensor/" + circle.mac + "/power/config"), str(json.dumps(hass_sensor)), True))
             qpub.put((str("homeassistant/switch/" + circle.mac + "/switch/config"), str(json.dumps(hass_switch)), True))
-            qpub.put((str("homeassistant/binary_sensor/" + circle.mac + "/switch/config"),
-                      str(json.dumps(hass_binary_sensor)), True))
+            qpub.put((str("homeassistant/binary_sensor/" + circle.mac + "/switch/config"), str(json.dumps(hass_binary_sensor)), True))
 
     def run(self):
         global mqtt
@@ -1507,7 +1509,7 @@ try:
                                     cfg['mqtt_port'],
                                     qpub,
                                     qsub,
-                                    "Plugwise-2-py",
+                                    "plugwise2mqtt",
                                     cfg['mqtt_user'],
                                     cfg['mqtt_password'])
         else:
@@ -1515,8 +1517,8 @@ try:
                                     cfg['mqtt_port'],
                                     qpub,
                                     qsub,
-                                    "Plugwise-2-py")
-        mqttclient.subscribe("plugwise2py/cmd/#")
+                                    "plugwise2mqtt")
+        mqttclient.subscribe("pplugwise2mqtt/cmd/#")
         mqtt_t = threading.Thread(target=mqttclient.run)
         mqtt_t.setDaemon(True)
         mqtt_t.start()
