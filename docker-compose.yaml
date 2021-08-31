@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: plugwise2py
-    image: registry.red-home.nl/red-software/plugwise2mqtt:latest
+    image: /plugwise2mqtt:latest
     deploy:
       placement:
         constraints:
@@ -18,7 +18,7 @@ services:
     environment:
       - TZ=Europe/Amsterdam
       - DSMR_SERIAL=/dev/ttyUSB3
-      - DSMR_MQTT_URL=mqqt-smurf.server.dronten.red-home.nl
+      - DSMR_MQTT_URL=
       - DSMR_MQTT_PORT=1883
     networks:
       - plugwise
