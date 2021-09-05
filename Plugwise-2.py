@@ -971,7 +971,7 @@ class PWControl(object):
                     idx = idx % 4
                     debug("len buffer: %d, production: %s" % (len(buffer), c.production))
                     for i, (dt, watt, watt_hour) in enumerate(buffer):
-                        if i >= idx and not dt is None and dt >= last_dt:
+                        if i >= idx and  dt is not None and dt >= last_dt:
                             # if the timestamp is identical to the previous, add production to usage
                             # in case of hourly production logging, and end of daylightsaving, duplicate
                             # timestamps can be present for two subsequent hours. Test the index
@@ -1522,8 +1522,8 @@ class PWControl(object):
             # self.cleanup_tmp()
 
 
-#init_logger(logpath + "pw-logger.log", "pw-logger")
-log_level(logging.DEBUG)
+init_logger(logpath + "pw-logger.log", "pw-logger")
+log_level(logging.INFO)
 
 try:
     qpub = queue.Queue()
