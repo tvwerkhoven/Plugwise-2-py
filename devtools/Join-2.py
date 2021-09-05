@@ -1330,7 +1330,7 @@ try:
                                     cfg['mqtt_password'])
         else:
             mqttclient = MqttClient(cfg['mqtt_ip'], cfg['mqtt_port'], qpub, qsub, "plugwise2mqtt")
-        mqttclient.subscribe("plugwise2mqtt/cmd/#")
+        mqttclient.subscribe(cfg['mqtt_topic'] + "/cmd/#")
         mqtt_t = threading.Thread(target=mqttclient.run)
         mqtt_t.setDaemon(True)
         mqtt_t.start()

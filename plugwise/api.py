@@ -94,6 +94,7 @@ class Stick(SerialComChannel):
             self.init()
 
     def send_msg(self, cmd):
+        success = False
         # log communication done in serialize function of message object. Could be too early!
         debug("SEND %4d %s" % (len(cmd), logf(cmd)))
         try:
@@ -105,7 +106,7 @@ class Stick(SerialComChannel):
         while 1:
             resp = self.expect_response(PlugwiseAckResponse)
             # test on sequence number, to be refined for wrap around
-            if (self.last_counter - int(resp.command_counter, 16) >= 0):
+            if self.last_counter - int(resp.command_counter, 16) >= 0:
                 debug("Seqnr already used in send_msg")
             # in case a timeout on previous send occurs, then ignore here.
             if resp.status.value == 0xE1:
@@ -116,7 +117,7 @@ class Stick(SerialComChannel):
                 success = True
             self.last_counter = int(resp.command_counter, 16)
             break
-        return (success, resp.command_counter)
+        return success, resp.command_counter
 
     def _recv_response(self, retry_timeout=5):
         await_response = True
@@ -184,7 +185,7 @@ class Stick(SerialComChannel):
 
     @staticmethod
     def is_in_sequence(resp, seqnr):
-        if not seqnr is None and resp.command_counter != seqnr:
+        if seqnr is not None and resp.command_counter != seqnr:
             error("Out of sequence message. Expected seqnr %s, received seqnr %s" % (seqnr, resp.command_counter))
             return False
         else:
@@ -455,8 +456,8 @@ class Circle(object):
 
     def __str__(self):
         objetc_str = ""
-        if not self._validate_mac(mac):
-            raise "MAC address is in unexpected format: " + str(mac)
+        if not self._validate_mac(self.mac):
+            raise "MAC address is in unexpected format: " + str(self.mac)
 
         objetc_str += "mac: " + str(self.mac)
         objetc_str += "\nname: " + str(self.name)
@@ -651,10 +652,10 @@ class Circle(object):
 
         pulses /= float(seconds)
         corrected_pulses = seconds * (((((pulses + self.off_noise) ** 2) * self.gain_b) + (
-          (pulses + self.off_noise) * self.gain_a)) + self.off_tot)
+                (pulses + self.off_noise) * self.gain_a)) + self.off_tot)
         debug("PULSE:   corrected: %.3f" % (pulses / seconds,))
         debug("PULSE: t corrected: %.3f" % (pulses,))
-        if (pulses > 0.0 and corrected_pulses < 0.0 or pulses < 0.0 and corrected_pulses > 0.0):
+        if pulses > 0.0 and corrected_pulses < 0.0 or pulses < 0.0 and corrected_pulses > 0.0:
             return 0.0
         return corrected_pulses
 
@@ -679,8 +680,9 @@ class Circle(object):
         corr_pulses_1s = watt * PULSES_PER_KW_SECOND / 1000.0
 
         raw_pulses_1s = (math.sqrt(self.gain_a ** 2.0 + 4.0 * self.gain_b * (
-          corr_pulses_1s - self.off_tot)) - self.gain_a - 2.0 * self.gain_b * self.off_noise) / (2.0 * self.gain_b);
-        if (corr_pulses_1s > 0.0 and raw_pulses_1s < 0.0 or corr_pulses_1s < 0.0 and raw_pulses_1s > 0.0):
+                corr_pulses_1s - self.off_tot)) - self.gain_a - 2.0 * self.gain_b * self.off_noise) / (
+                                    2.0 * self.gain_b);
+        if corr_pulses_1s > 0.0 and raw_pulses_1s < 0.0 or corr_pulses_1s < 0.0 and raw_pulses_1s > 0.0:
             return 0.0
         return seconds * raw_pulses_1s
 
@@ -710,7 +712,7 @@ class Circle(object):
         p1s, p8s, p1h, pp1h = resp.pulse_1s.value, resp.pulse_8s.value, resp.pulse_hour.value, resp.pulse_prod_hour.value
         if self.production == 'False':
             pp1h = 0
-        return (p1s, p8s, p1h, pp1h)
+        return p1s, p8s, p1h, pp1h
 
     def get_power_usage(self):
         """returns power usage for the last second in Watts
@@ -794,7 +796,7 @@ class Circle(object):
         req = PlugwiseSwitchRequest(self._mac(), on)
         _, seqnr = self._comchan.send_msg(req.serialize())
         resp = self._expect_response(PlugwiseAckMacResponse, seqnr)
-        if on == True:
+        if on:
             if resp.status.value != 0xD8:
                 error("Wrong switch status reply when  switching on. expected '00D8', received '%04X'" % (
                     resp.status.value,))
@@ -974,7 +976,7 @@ class Circle(object):
         self.schedule = None
 
     def load_schedule(self, dst=0):
-        if not self.schedule._pulse is None:
+        if self.schedule._pulse is not None:
             info("circle.load_schedule. enter function")
             self.schedule._dst_shift(dst)
             # TODO: add test on inequality of CRC
@@ -1002,7 +1004,7 @@ class Circle(object):
         req = PlugwiseEnableScheduleRequest(self._mac(), on)
         _, seqnr = self._comchan.send_msg(req.serialize())
         resp = self._expect_response(PlugwiseAckMacResponse, seqnr)
-        if on == True:
+        if on:
             if resp.status.value != 0xE4:
                 error("Wrong schedule status reply when setting schedule on. expected '00E4', received '%04X'" % (
                     resp.status.value,))
@@ -1132,10 +1134,7 @@ class Schedule(object):
         return pulses if pulses > 0 else 1
 
     def dump_status(self):
-        retd = {}
-        retd['name'] = self.name
-        retd['CRC'] = self.CRC
-        retd['schedule'] = self._watt
+        retd = {'name': self.name, 'CRC': self.CRC, 'schedule': self._watt}
         return retd
 
     # def _shift_day(self):

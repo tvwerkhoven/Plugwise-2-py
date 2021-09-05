@@ -583,7 +583,7 @@ class PWControl(object):
                     if sc:
                         # update switch in circles and controls to relay state
                         # temporary logging to monitor changed schedule policy
-                        if (c.switch_state != c.relay_state):
+                        if c.switch_state != c.relay_state:
                             info("apply_schedstate_to_circle: set switch_state to relay_state when schedule is used")
                         c.switch_state = c.relay_state
                         control['switch_state'] = c.switch_state
@@ -733,56 +733,66 @@ class PWControl(object):
             payl = rcv[1]
             info("process_mqtt_commands: %s %s" % (topic, payl))
             # topic format: plugwise2py/cmd/<cmdname>/<mac>
-            st = topic.split('/')
-            try:
-                mac = st[-1]
-                cmd = st[-2]
-                # msg format: json: {"mac":"...", "cmd":"", "val":""}
-                msg = json.loads(payl)
-                control = self.controls[self.controlsbymac[mac]]
-                val = msg['val']
+            if str(topic).startswith( cfg['mqtt_topic']):
+                st = topic.split('/')
                 try:
-                    source = msg['uid']
-                except:  # KeyError:
-                    source = "anonymous_mqtt"
-            except:
-                error("MQTT: Invalid message format in topic or JSON payload")
-                continue
-            if cmd == "switch":
-                val = val.lower()
-                if val == "on" or val == "off":
-                    control['switch_state'] = val
-                    updated = self.apply_switch_to_circle(control, mac, source)
-                    ##switch command overrides schedule_state setting
-                    # control['schedule_state'] = "off"
-                else:
-                    error("MQTT command has invalid value %s" % (val,))
-            elif cmd == "schedule":
-                val = val.lower()
-                if val == "on" or val == "off":
-                    control['schedule_state'] = val
-                    updated = self.apply_schedstate_to_circle(control, mac, source)
-                else:
-                    error("MQTT command has invalid value %s" % (val,))
-            elif cmd == "setsched":
-                error("MQTT command not implemented")
-            elif cmd == "reqstate":
-                # refresh power readings for circle
-                try:
-                    c = self.circles[self.bymac[mac]]
-                    c.get_power_usage()
-                    info("Just read power for status update")
+                    mac = st[-1]
+                    cmd = st[-2]
+                    # msg format: json: {"mac":"...", "cmd":"", "val":""}
+                    msg = json.loads(payl)
+                    control = self.controls[self.controlsbymac[mac]]
+                    val = msg['val']
+                    try:
+                        source = msg['uid']
+                    except:  # KeyError:
+                        source = "anonymous_mqtt"
                 except:
-                    info("Error in reading power for status update")
-                # return message is generic state message below
+                    error("MQTT: Invalid message format in topic or JSON payload")
+                    continue
+                if cmd == "switch":
+                    val = val.lower()
+                    if val == "on" or val == "off":
+                        control['switch_state'] = val
+                        updated = self.apply_switch_to_circle(control, mac, source)
+                        ##switch command overrides schedule_state setting
+                        # control['schedule_state'] = "off"
+                    else:
+                        error("MQTT command has invalid value %s" % (val,))
+                elif cmd == "schedule":
+                    val = val.lower()
+                    if val == "on" or val == "off":
+                        control['schedule_state'] = val
+                        updated = self.apply_schedstate_to_circle(control, mac, source)
+                    else:
+                        error("MQTT command has invalid value %s" % (val,))
+                elif cmd == "setsched":
+                    error("MQTT command not implemented")
+                elif cmd == "reqstate":
+                    # refresh power readings for circle
+                    try:
+                        c = self.circles[self.bymac[mac]]
+                        c.get_power_usage()
+                        info("Just read power for status update")
+                    except:
+                        info("Error in reading power for status update")
+                    # return message is generic state message below
 
-            self.publish_circle_state(mac)
+                self.publish_circle_state(mac)
+            if str(topic).startswith(cfg['mqtt_discoveryTopic']):
+                data = topic.split("/")
+                if data[0] == str(cfg['mqtt_discoveryTopic']) and data[1] == "status":
+                    if msg == "online":
+                        try:
+                            self.register_on_home_assisted()
+                        except:
+                            print("Unexpected error:", sys.exc_info()[0])
+                            error("PWControl.run(): Register the circles to home assisted failed")
         if updated:
             self.write_control_file()
             self.last_control_ts = os.stat(self.control_fn).st_mtime
 
     def ftopic(self, keyword, mac):
-        return "plugwise2mqtt/state/" + keyword + "/" + mac
+        return cfg['mqtt_topic'] + "/state/" + keyword + "/" + mac
 
     def publish_circle_state(self, mac):
         qpub.put((self.ftopic("circle", mac), str(self.get_status_json(mac)), True))
@@ -818,13 +828,20 @@ class PWControl(object):
                 t = datetime.time(datetime.datetime.utcnow() - timedelta(seconds=time.timezone))
                 ts = 3600 * t.hour + 60 * t.minute + t.second
             try:
-                _, usage, _, _ = c.get_power_usage()
+                usage_1s, usage_8s, usage_1h, usage_p1h = c.get_power_usage()
                 # print("%10d, %8.2f" % (ts, usage,))
-                f.write("%5d, %8.2f\n" % (ts, usage,))
-                self.curfile.write("%s, %.2f\n" % (mac, usage))
+                f.write("%5d, %8.2f\n" % (ts, usage_8s,))
+                self.curfile.write("%s, %.2f\n" % (mac, usage_8s))
                 # debug("MQTT put value in qpub")
-                msg = str('{"typ":"pwpower","ts":%d,"mac":"%s","power":%.2f}' % (ts, mac, usage))
+                msg = str('{"typ":"pwpower","ts":%d,"mac":"%s","power":%.2f,"power_1s":%.2f,"power_8s":%.2f,"power_1h":%.2f,"power_p1h":%.2f}' % (ts, mac, usage_8s, usage_1s, usage_8s, usage_1h, usage_p1h))
                 qpub.put((self.ftopic("power", mac), msg, True))
+
+                msg = str('{"typ":"pwenergy","ts":%d,"mac":"%s","energy":%.2f}' % (ts, mac, usage_1h))
+                qpub.put((self.ftopic("energy", mac), msg, True))
+
+                # date_time, average_watt, watt_hours = c.get_power_usage_history()
+                # msg = str('{"typ":"pwpower","ts":%d,"mac":"%s","date_time":%s,"power":%.2f,"power_h":%.2f}' % (ts, mac, date_time, average_watt,watt_hours))
+                # qpub.put((self.ftopic("history", mac), msg, True))
             except ValueError:
                 # print("%5d, " % (ts,))
                 f.write("%5d, \n" % (ts,))
@@ -834,7 +851,8 @@ class PWControl(object):
                 error("Error in ten_seconds(): %s" % (reason,))
             f.flush()
             # prevent backlog in command queue
-            if mqtt: self.process_mqtt_commands()
+            if mqtt:
+                self.process_mqtt_commands()
         self.curfile.flush()
         return
 
@@ -1168,7 +1186,6 @@ class PWControl(object):
         # NOTE: Untested function, for example purposes
         print("Untested function, for example purposes")
         print("Aborting. Remove next line to continue")
-        krak
         #
         # TODO: Exception handling
         for c in self.circles:
@@ -1279,7 +1296,7 @@ class PWControl(object):
         # a later call to self.test_offline will initialize the new circle(s)
         # self.test_offline()
 
-    def register_on_homeassisten(self):
+    def register_on_home_assisted(self):
         print(self.circles)
         for circle in self.circles:
             hass_device = dict(identifiers=["plugwise_" + circle.mac],
@@ -1287,19 +1304,29 @@ class PWControl(object):
                                name=circle.name,
                                model="Circle")
 
-            hass_sensor = dict(name=circle.name + "_power",
-                               state_topic="plugwise2mqtt/state/power/" + circle.mac,
-                               unit_of_measurement="W",
+            hass_sensor_p = dict(name=circle.name + "_power",
+                               state_topic=cfg['mqtt_topic'] + "/state/power/" + circle.mac,
+                               unit_of_measurement="kW",
                                value_template="{{ value_json.power }}",
                                unique_id="" + circle.mac + "_power",
                                device_class="power",
                                device=hass_device)
 
-            info("PWControl.register_on_homeassistend(): " + json.dumps(hass_sensor))
+            info("PWControl.register_on_home_assisted(): " + json.dumps(hass_sensor_e))
+
+            hass_sensor_e = dict(name=circle.name + "_energy",
+                               state_topic=cfg['mqtt_topic'] + "/state/energy/" + circle.mac,
+                               unit_of_measurement="kWh",
+                               value_template="{{ value_json.energy }}",
+                               unique_id="" + circle.mac + "_energy",
+                               device_class="energy",
+                               device=hass_device)
+
+            info("PWControl.register_on_home_assisted(): " + json.dumps(hass_sensor_e))
 
             hass_switch = dict(name=circle.name + "_switch",
-                               state_topic="plugwise2matt/state/circle/" + circle.mac,
-                               command_topic="plugwise2mqtt/cmd/switch/" + circle.mac,
+                               state_topic=cfg['mqtt_topic'] + "/state/circle/" + circle.mac,
+                               command_topic=cfg['mqtt_topic'] + "/cmd/switch/" + circle.mac,
                                value_template='{"mac": "' + circle.mac + '", "cmd": "switch", "val": "{{ value_json.switch }}"}',
                                payload_on='{"mac": "' + circle.mac + '", "cmd": "switch", "val": "on"}',
                                payload_off='{"mac": "' + circle.mac + '", "cmd": "switch", "val": "off"}',
@@ -1308,21 +1335,22 @@ class PWControl(object):
                                device_class="switch",
                                unique_id="" + circle.mac + "_switch",
                                device=hass_device)
-            info("PWControl.register_on_homeassistend(): " + str(json.dumps(hass_switch)))
+            info("PWControl.register_on_home_assisted(): " + str(json.dumps(hass_switch)))
 
             hass_binary_sensor = dict(name=circle.name + "_connectivity",
-                                      state_topic="plugwise2mqtt/state/circle/" + circle.mac,
+                                      state_topic=cfg['mqtt_topic'] + "/state/circle/" + circle.mac,
                                       value_template="{{ value_json.switch }}",
                                       payload_on="on",
                                       payload_off="off",
                                       device_class="connectivity",
                                       unique_id="" + circle.mac + "_connectivity",
                                       device=hass_device)
-            info("PWControl.register_on_homeassistend(): " + str(json.dumps(hass_binary_sensor)))
+            info("PWControl.register_on_home_assisted(): " + str(json.dumps(hass_binary_sensor)))
 
-            qpub.put((str("homeassistant/sensor/" + circle.mac + "/power/config"), str(json.dumps(hass_sensor)), True))
-            qpub.put((str("homeassistant/switch/" + circle.mac + "/switch/config"), str(json.dumps(hass_switch)), True))
-            qpub.put((str("homeassistant/binary_sensor/" + circle.mac + "/switch/config"), str(json.dumps(hass_binary_sensor)), True))
+            qpub.put((str(cfg['mqtt_discoveryTopic'] + "/sensor/" + circle.mac + "/energy/config"), str(json.dumps(hass_sensor_e)), True))
+            qpub.put((str(cfg['mqtt_discoveryTopic'] + "/sensor/" + circle.mac + "/power/config"), str(json.dumps(hass_sensor_p)), True))
+            qpub.put((str(cfg['mqtt_discoveryTopic'] + "/switch/" + circle.mac + "/switch/config"), str(json.dumps(hass_switch)), True))
+            qpub.put((str(cfg['mqtt_discoveryTopic'] + "/binary_sensor/" + circle.mac + "/switch/config"), str(json.dumps(hass_binary_sensor)), True))
 
     def run(self):
         global mqtt
@@ -1382,10 +1410,10 @@ class PWControl(object):
             error("PWControl.run(): Communication error in enable_joining")
 
         try:
-            self.register_on_homeassisten()
+            self.register_on_home_assisted()
         except:
             print("Unexpected error:", sys.exc_info()[0])
-            error("PWControl.run(): Register the citrcles to homeaddistend faild")
+            error("PWControl.run(): Register the circles to home assisted failed")
 
         # logrecs = True
         logrecsn = len(self.circles)
@@ -1401,7 +1429,8 @@ class PWControl(object):
             ref = datetime.datetime.now()
             proceed_at = ref + timedelta(seconds=(10 - ref.second % 10), microseconds=-ref.microsecond)
             while datetime.datetime.now() < proceed_at:
-                if mqtt: self.process_mqtt_commands()
+                if mqtt:
+                    self.process_mqtt_commands()
                 time.sleep(0.5)
             # prepare for logging values
             prev_dst = dst
@@ -1493,7 +1522,7 @@ class PWControl(object):
             # self.cleanup_tmp()
 
 
-init_logger(logpath + "pw-logger.log", "pw-logger")
+#init_logger(logpath + "pw-logger.log", "pw-logger")
 log_level(logging.DEBUG)
 
 try:
@@ -1518,7 +1547,8 @@ try:
                                     qpub,
                                     qsub,
                                     "plugwise2mqtt")
-        mqttclient.subscribe("pplugwise2mqtt/cmd/#")
+        mqttclient.subscribe(cfg['mqtt_topic'] + "/cmd/#")
+        mqttclient.subscribe(cfg['mqtt_discoveryTopic'] + "/status")
         mqtt_t = threading.Thread(target=mqttclient.run)
         mqtt_t.setDaemon(True)
         mqtt_t.start()

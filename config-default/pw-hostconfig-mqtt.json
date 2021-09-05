@@ -1,1 +1,16 @@
-{"permanent_path": "/home/pi/datalog", "tmp_path": "/tmp", "log_path": "/home/pi/pwlog", "serial": "/dev/ttyUSB0", "log_format": "epoch", "mqtt_ip": "127.0.0.1", "mqtt_port": "1883"}
+{
+  "permanent_path": "/home/pi/datalog",
+  "tmp_path": "/tmp",
+  "log_path": "/home/pi/pwlog",
+  "serial": "/dev/ttyUSB0",
+  "log_format": "epoch",
+  "mqtt_ip": "127.0.0.1",
+  "mqtt_port": "1883",
+  "mqtt_CA": "",
+  "mqtt_cert": "",
+  "mqtt_key": "",
+  "mqtt_allowedCiphers": "",
+  "mqtt_verifyCertificate": true,
+  "mqtt_topic": "plugwise2mqtt",
+  "mqtt_discoveryTopic": "homeassistant"
+}
