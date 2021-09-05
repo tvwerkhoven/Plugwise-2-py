@@ -1306,13 +1306,13 @@ class PWControl(object):
 
             hass_sensor_p = dict(name=circle.name + "_power",
                                state_topic=cfg['mqtt_topic'] + "/state/power/" + circle.mac,
-                               unit_of_measurement="kW",
+                               unit_of_measurement="W",
                                value_template="{{ value_json.power }}",
                                unique_id="" + circle.mac + "_power",
                                device_class="power",
                                device=hass_device)
 
-            info("PWControl.register_on_home_assisted(): " + json.dumps(hass_sensor_e))
+            info("PWControl.register_on_home_assisted(): " + json.dumps(hass_sensor_p))
 
             hass_sensor_e = dict(name=circle.name + "_energy",
                                state_topic=cfg['mqtt_topic'] + "/state/energy/" + circle.mac,
