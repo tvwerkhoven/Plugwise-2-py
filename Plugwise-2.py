@@ -781,6 +781,7 @@ class PWControl(object):
             if str(topic).startswith(cfg['mqtt_discoveryTopic']):
                 data = topic.split("/")
                 if data[0] == str(cfg['mqtt_discoveryTopic']) and data[1] == "status":
+                    msg = str(payl.decode("utf-8"))
                     if msg == "online":
                         try:
                             self.register_on_home_assisted()
