@@ -1310,7 +1310,6 @@ class PWControl(object):
                                unit_of_measurement="W",
                                value_template="{{ value_json.power }}",
                                unique_id="" + circle.mac + "_power",
-                               device_class="power",
                                device=hass_device)
 
             info("PWControl.register_on_home_assisted(): " + json.dumps(hass_sensor_p))
@@ -1320,7 +1319,6 @@ class PWControl(object):
                                unit_of_measurement="kWh",
                                value_template="{{ value_json.energy }}",
                                unique_id="" + circle.mac + "_energy",
-                               device_class="energy",
                                device=hass_device)
 
             info("PWControl.register_on_home_assisted(): " + json.dumps(hass_sensor_e))
@@ -1333,7 +1331,6 @@ class PWControl(object):
                                payload_off='{"mac": "' + circle.mac + '", "cmd": "switch", "val": "off"}',
                                retain="true",
                                optimistic="false",
-                               device_class="switch",
                                unique_id="" + circle.mac + "_switch",
                                device=hass_device)
             info("PWControl.register_on_home_assisted(): " + str(json.dumps(hass_switch)))
@@ -1343,7 +1340,6 @@ class PWControl(object):
                                       value_template="{{ value_json.switch }}",
                                       payload_on="on",
                                       payload_off="off",
-                                      device_class="connectivity",
                                       unique_id="" + circle.mac + "_connectivity",
                                       device=hass_device)
             info("PWControl.register_on_home_assisted(): " + str(json.dumps(hass_binary_sensor)))
