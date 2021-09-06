@@ -1306,20 +1306,22 @@ class PWControl(object):
                                model="Circle")
 
             hass_sensor_p = dict(name=circle.name + "_power",
-                               state_topic=cfg['mqtt_topic'] + "/state/power/" + circle.mac,
-                               unit_of_measurement="W",
-                               value_template="{{ value_json.power }}",
-                               unique_id="" + circle.mac + "_power",
-                               device=hass_device)
+                                 state_topic=cfg['mqtt_topic'] + "/state/power/" + circle.mac,
+                                 unit_of_measurement="W",
+                                 value_template="{{ value_json.power }}",
+                                 unique_id="" + circle.mac + "_power",
+                                 state_class="measurement",
+                                 device=hass_device)
 
             info("PWControl.register_on_home_assisted(): " + json.dumps(hass_sensor_p))
 
             hass_sensor_e = dict(name=circle.name + "_energy",
-                               state_topic=cfg['mqtt_topic'] + "/state/energy/" + circle.mac,
-                               unit_of_measurement="kWh",
-                               value_template="{{ value_json.energy }}",
-                               unique_id="" + circle.mac + "_energy",
-                               device=hass_device)
+                                 state_topic=cfg['mqtt_topic'] + "/state/energy/" + circle.mac,
+                                 unit_of_measurement="kWh",
+                                 value_template="{{ value_json.energy }}",
+                                 unique_id="" + circle.mac + "_energy",
+                                 state_class="total_increasing",
+                                 device=hass_device)
 
             info("PWControl.register_on_home_assisted(): " + json.dumps(hass_sensor_e))
 
