@@ -1046,7 +1046,7 @@ class PWControl(object):
             # just set this several years back. Circles may have been unplugged for a while
             fileopen = False
             f = None
-            prev_dt = datetime(2000, 1, 1)
+            prev_dt = datetime.datetime(2000, 1, 1)
             for dt, watt, watt_hour in log:
                 if dt is not None:
                     # calculate cumulative energy in Wh
