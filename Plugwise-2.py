@@ -895,7 +895,7 @@ class PWControl(object):
                 idx = 0
                 first = first + 1
             if c.last_log_ts != 0:
-                last_dt = datetime.utcfromtimestamp(c.last_log_ts) - timedelta(seconds=time.timezone)
+                last_dt = datetime.datetime.utcfromtimestamp(c.last_log_ts) - timedelta(seconds=time.timezone)
             else:
                 last_dt = None
 
